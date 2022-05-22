@@ -436,7 +436,7 @@ class PeriodsTest extends TestCase {
     .........[1].....
     */
 
-    let union = Periods.unionPair(period1,period3);
+    let union = Periods.unionPair(period1, period3);
     result = Periods.subtract(union, period3);
     assertEqual(result.length, 1);
     assertEqual(result[0].start, period3.end + 1);
@@ -470,6 +470,257 @@ class PeriodsTest extends TestCase {
     assertTrue(changes.find(value => !value.free && value.period.start.equal(period3.start) && value.period.end.equal(period1.start - 1)));
     assertTrue(changes.find(value => !value.free && value.period.start.equal(period4.start) && value.period.end.equal(period4.end)));
   }
+
+
+  test_getDiff() {
+    /*
+    .....[ 1 ].....
+    .....[ 2 ].....
+    ===============
+    .....[   ].....
+    */
+
+    const period1 = new Period({ start: '20220110', end: '20220120' });
+    const period2 = new Period({ start: '20220110', end: '20220120' });
+    let diff = Periods.getDiff([period1], [period2]);
+    assertEqual(diff.length, 1)
+    assertTrue(diff[0].mode === '');
+    assertEqual(diff[0].period.start, period1.start);
+    assertEqual(diff[0].period.end, period1.end);
+
+    /*
+    .....[ 3 ].....
+    .....[ 4  ]....
+    ===============
+    .....     +....
+    */
+
+    const period3 = new Period({ start: '20220110', end: '20220120' });
+    const period4 = new Period({ start: '20220110', end: '20220121' });
+    diff = Periods.getDiff([period3], [period4]);
+    assertEqual(diff.length, 2)
+    assertTrue(diff[0].mode === '');
+    assertEqual(diff[0].period.start, period3.start);
+    assertEqual(diff[0].period.end, period3.end);
+    assertTrue(diff[1].mode === '+');
+    assertEqual(diff[1].period.start, period3.end + 1);
+    assertEqual(diff[1].period.end, period4.end);
+
+
+    /*
+    .....[ 5 ].....
+    .....[ 6    ]..
+    ===============
+    .....     +++..
+    */
+
+    const period5 = new Period({ start: '20220110', end: '20220120' });
+    const period6 = new Period({ start: '20220110', end: '20220130' });
+    diff = Periods.getDiff([period5], [period6]);
+    assertEqual(diff.length, 2)
+    assertTrue(diff[0].mode === '');
+    assertEqual(diff[0].period.start, period5.start);
+    assertEqual(diff[0].period.end, period5.end);
+    assertTrue(diff[1].mode === '+');
+    assertEqual(diff[1].period.start, period5.end + 1);
+    assertEqual(diff[1].period.end, period6.end);
+
+    /*
+    .....[ 7 ].....
+    ..[ 8    ].....
+    ===============
+    ..+++     .....
+    */
+
+    const period7 = new Period({ start: '20220110', end: '20220120' });
+    const period8 = new Period({ start: '20220101', end: '20220120' });
+    diff = Periods.getDiff([period7], [period8]);
+    assertEqual(diff.length, 2)
+    assertTrue(diff[0].mode === '+');
+    assertEqual(diff[0].period.start, period8.start);
+    assertEqual(diff[0].period.end, period7.start - 1);
+    assertTrue(diff[1].mode === '');
+    assertEqual(diff[1].period.start, period7.start);
+    assertEqual(diff[1].period.end, period7.end);
+
+    /*
+    .....[ 9 ].....
+    ....[ 10 ].....
+    ===============
+    ....+     .....
+    */
+
+    const period9 = new Period({ start: '20220110', end: '20220120' });
+    const period10 = new Period({ start: '20220109', end: '20220120' });
+    diff = Periods.getDiff([period9], [period10]);
+    assertEqual(diff.length, 2)
+    assertTrue(diff[0].mode === '+');
+    assertEqual(diff[0].period.start, period10.start);
+    assertEqual(diff[0].period.end, period9.start - 1);
+    assertTrue(diff[1].mode === '');
+    assertEqual(diff[1].period.start, period9.start);
+    assertEqual(diff[1].period.end, period9.end);
+
+
+    /*
+    .....[ 11 ]....
+    ......[12 ]....
+    ===============
+    .....-     .....
+    */
+
+    const period11 = new Period({ start: '20220110', end: '20220120' });
+    const period12 = new Period({ start: '20220111', end: '20220120' });
+    diff = Periods.getDiff([period11], [period12]);
+    assertEqual(diff.length, 2)
+    assertTrue(diff[0].mode === '-');
+    assertEqual(diff[0].period.start, period11.start);
+    assertEqual(diff[0].period.end, period12.start - 1);
+    assertTrue(diff[1].mode === '');
+    assertEqual(diff[1].period.start, period12.start);
+    assertEqual(diff[1].period.end, period12.end);
+
+    /*
+    .....[ 13 ]....
+    .......[14]....
+    ===============
+    .....--    ....
+    */
+
+    const period13 = new Period({ start: '20220110', end: '20220120' });
+    const period14 = new Period({ start: '20220115', end: '20220120' });
+    diff = Periods.getDiff([period13], [period14]);
+    assertEqual(diff.length, 2)
+    assertTrue(diff[0].mode === '-');
+    assertEqual(diff[0].period.start, period13.start);
+    assertEqual(diff[0].period.end, period14.start - 1);
+    assertTrue(diff[1].mode === '');
+    assertEqual(diff[1].period.start, period14.start);
+    assertEqual(diff[1].period.end, period14.end);
+
+
+    /*
+    .....[ 15 ]....
+    .....[16]......
+    ===============
+    .....    --....
+    */
+
+    const period15 = new Period({ start: '20220110', end: '20220120' });
+    const period16 = new Period({ start: '20220110', end: '20220115' });
+    diff = Periods.getDiff([period15], [period16]);
+    assertEqual(diff.length, 2)
+    assertTrue(diff[0].mode === '');
+    assertEqual(diff[0].period.start, period15.start);
+    assertEqual(diff[0].period.end, period16.end);
+    assertTrue(diff[1].mode === '-');
+    assertEqual(diff[1].period.start, period16.end + 1);
+    assertEqual(diff[1].period.end, period15.end);
+
+    /*
+    .....[ 17 ]....
+    .....[18 ].....
+    ===============
+    .....     -....
+    */
+
+    const period17 = new Period({ start: '20220110', end: '20220120' });
+    const period18 = new Period({ start: '20220110', end: '20220119' });
+    diff = Periods.getDiff([period17], [period18]);
+    assertEqual(diff.length, 2)
+    assertTrue(diff[0].mode === '');
+    assertEqual(diff[0].period.start, period17.start);
+    assertEqual(diff[0].period.end, period18.end);
+    assertTrue(diff[1].mode === '-');
+    assertEqual(diff[1].period.start, period18.end + 1);
+    assertEqual(diff[1].period.end, period17.end);    
+
+    /*
+    .....[ 19 ]....
+    ......[20].....
+    ===============
+    .....-    -....
+    */
+
+    const period19 = new Period({ start: '20220110', end: '20220120' });
+    const period20 = new Period({ start: '20220111', end: '20220119' });
+    diff = Periods.getDiff([period19], [period20]);
+    assertEqual(diff.length, 3)
+    assertTrue(diff[0].mode === '-');
+    assertEqual(diff[0].period.start, period19.start);
+    assertEqual(diff[0].period.end, period20.start - 1);
+    assertTrue(diff[1].mode === '');
+    assertEqual(diff[1].period.start, period20.start);
+    assertEqual(diff[1].period.end, period20.end);        
+    assertTrue(diff[2].mode === '-');
+    assertEqual(diff[2].period.start, period20.end+1);
+    assertEqual(diff[2].period.end, period19.end);   
+
+    /*
+    ......[21].....
+    .....[ 22 ]....
+    ===============
+    .....+    +....
+    */
+
+    const period21 = new Period({ start: '20220110', end: '20220120' });
+    const period22 = new Period({ start: '20220109', end: '20220121' });
+    diff = Periods.getDiff([period21], [period22]);
+    assertEqual(diff.length, 3)
+    assertTrue(diff[0].mode === '+');
+    assertEqual(diff[0].period.start, period22.start);
+    assertEqual(diff[0].period.end, period21.start - 1);
+    assertTrue(diff[1].mode === '');
+    assertEqual(diff[1].period.start, period21.start);
+    assertEqual(diff[1].period.end, period21.end);        
+    assertTrue(diff[2].mode === '+');
+    assertEqual(diff[2].period.start, period21.end+1);
+    assertEqual(diff[2].period.end, period22.end);    
+
+    /*
+    ....[ 23 ].....
+    .....[ 24 ]....
+    ===============
+    ....-     +....
+    */
+
+    const period23 = new Period({ start: '20220110', end: '20220120' });
+    const period24 = new Period({ start: '20220111', end: '20220121' });
+    diff = Periods.getDiff([period23], [period24]);
+    assertEqual(diff.length, 3)
+    assertTrue(diff[0].mode === '-');
+    assertEqual(diff[0].period.start, period23.start);
+    assertEqual(diff[0].period.end, period24.start - 1);
+    assertTrue(diff[1].mode === '');
+    assertEqual(diff[1].period.start, period24.start);
+    assertEqual(diff[1].period.end, period23.end);        
+    assertTrue(diff[2].mode === '+');
+    assertEqual(diff[2].period.start, period23.end+1);
+    assertEqual(diff[2].period.end, period24.end);     
+
+    /*
+    ....[ 25 ].....
+    ...[ 26 ]......
+    ===============
+    ...+     -....
+    */
+
+    const period25 = new Period({ start: '20220110', end: '20220120' });
+    const period26 = new Period({ start: '20220109', end: '20220119' });
+    diff = Periods.getDiff([period25], [period26]);
+    assertEqual(diff.length, 3)
+    assertTrue(diff[0].mode === '+');
+    assertEqual(diff[0].period.start, period26.start);
+    assertEqual(diff[0].period.end, period25.start - 1);
+    assertTrue(diff[1].mode === '');
+    assertEqual(diff[1].period.start, period25.start);
+    assertEqual(diff[1].period.end, period26.end);        
+    assertTrue(diff[2].mode === '-');
+    assertEqual(diff[2].period.start, period26.end+1);
+    assertEqual(diff[2].period.end, period25.end);      
+
+  }
+
 
 }
 
