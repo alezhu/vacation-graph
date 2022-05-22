@@ -414,13 +414,11 @@ class Periods {
                             //skip
                         }
                     } else {
-                        if (!start.equal(item.value)) {
-                            const diff = {
-                                mode: '+',
-                                period: new Period({ start, end: item.value })
-                            }
-                            result.push(diff);
+                        const diff = {
+                            mode: '+',
+                            period: new Period({ start, end: item.value })
                         }
+                        result.push(diff);
                         start = null;
                     }
                 }
