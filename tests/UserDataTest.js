@@ -72,6 +72,6 @@ class UserDataTest extends TestCase {
     }
 }
 
-function test_UserData_() {
+function test_UserData() {
     new TestCase(this).run(UserDataTest);
 }

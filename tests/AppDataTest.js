@@ -23,7 +23,7 @@ class AppDataTest extends TestCase {
     // Logger.log(json);
     const value2 = AppData.deserialize(json);
     // Logger.log(value2);    
-    value2.usersData.length = value.usersData.length;
+    assertTrue(value2.usersData.length == value.usersData.length);
     assertTrue(value2.usersData.map.has(Array.from(value.usersData)[0].fio));
     assertTrue(value2.usersData.map.has(Array.from(value.usersData)[1].fio));
   }

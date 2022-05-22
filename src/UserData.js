@@ -29,7 +29,7 @@ class UserData {
     }
 
     /**
-     * @param {Period[]} periods
+     * @param {...Period} periods
      */
     addPeriods(...periods) {
         this.periods.add(...periods);
@@ -46,11 +46,11 @@ class UserData {
             for (let year = period.start.year; year <= period.end.year; ++year) {
                 const start =
                     year == period.start.year ?
-                    period.start.year :
+                    period.start :
                     new MyDate(new Date(Date.UTC(year, 0, 1)));
                 const end =
                     year === period.end.year ?
-                    periond.end :
+                    period.end :
                     new MyDate(new Date(Date.UTC(year, 11, 31)));
                 result.merge({
                     year,

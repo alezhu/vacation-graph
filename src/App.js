@@ -1,5 +1,5 @@
 /**
- * @field {SpreadsheetApp} _workbook
+ * @property {SpreadsheetApp} _workbook
  */
 class App {
 
@@ -18,8 +18,8 @@ class App {
 
     const id = workbook.getId();
     /** 
-    * @type {Map<string,App>} appMap 
-    */
+     * @type {Map<string,App>} appMap 
+     */
     const appMap = getAppMap();
     let app = appMap.get(id);
     if (!app) {
@@ -35,9 +35,9 @@ class App {
   constructor(workbook) {
     this._id = workbook.getId();
     Logger.log("Create app: " + this._id);
-    /** @type {Spreadsheet} */
+    /** @type {SpreadsheetApp} */
     this._workbook = workbook;
-    this._appData = new AppData();//.loadFromCache();
+    this._appData = new AppData(); //.loadFromCache();
   }
 
   /**
@@ -81,13 +81,14 @@ class App {
 
 
   /**
-  * @param {SpreadsheetApp.Sheet} sheet
-  */
+   * @param {SpreadsheetApp.Sheet} sheet
+   */
   _processDataSheet(sheet) {
     const data = sheet.getDataRange().getValues();
     const context = {
       fioColumnIndex: 0,
-      sheet
+      sheet,
+      fioRE: /[А-Я][а-я\-]*\s+[А-Я]\.\s*([А-Я]\.?)?/
     }
     for (const row of data) {
       this._processDataRow(context, row);
@@ -95,15 +96,16 @@ class App {
   }
 
   /**
-  * @param {object} ctx
-  * @param {number} ctx.fioColumnIndex
-  * @param {SpreadsheetApp.Sheet} ctx.sheet
-  * @param {object[]} row
-  */
+   * @param {object} ctx
+   * @param {number} ctx.fioColumnIndex
+   * @param {SpreadsheetApp.Sheet} ctx.sheet
+   * @param {RegExp} ctx.fioRE
+   * @param {object[]} row
+   */
   _processDataRow(ctx, row) {
     let start = null;
     let startIndex = 0;
-    const fioRe = /[А-Я][а-я\-]*\s+[А-Я]\.\s*([А-Я]\.?)?/;
+    const fioRe = ctx.fioRE;
     const periods = [];
     for (let i = 0; i < row.length; ++i) {
       const value = row[i];
@@ -152,66 +154,42 @@ class App {
    * @param {SpreadsheetApp.Sheet} sheet
    */
   _processGraphSheet(sheet) {
-    /**
-     * @type {SpreadsheetApp.Range}
-     */
-    const dataRange = sheet.getDataRange();
-    const lastRow = dataRange.getLastRow();
-    if(lastRow <= Settings.graphStartUsersRow) return;
-    const fioRange = sheet.getRange(Settings.graphStartUsersRow, Settings.graphFIOPos.col, lastRow - Settings.graphStartUsersRow + 1, 1);
-    /**
-     * @type {string[]}
-     */
-    const fios = fioRange.getValues().map(row => row[0]);
-    const backgrounds = dataRange.getBackgrounds();
-    const sheetName = sheet.getName();
-    const year = parseInt(sheetName.replace(Settings.graphPrefix, ''));
-    const startDate = new Date(Date.UTC(year, 0, 1));
-    const endDate = new Date(Date.UTC(year, 11, 31));
-    const usersData = [];
-    for (let row = Settings.graphStartUsersRow-1, index = 0; row < lastRow; ++row, ++index) {
-      const fio = fios[index];
-      const fioBackgrounds = backgrounds[row];
-      const dateRange = Utils.DateRange(startDate, endDate);
-      let periodStartDate = null;
-      let periodEndDate = null;
-      const periods = [];
-      for (let col = Settings.graphStartCalendarCol-1; col < fioBackgrounds.length; ++col) {
-        const date = dateRange.next().value;
-        const color = fioBackgrounds[col];
-        if (color === Settings.graphVacationColor) {
-          if (!periodStartDate) {
-            periodStartDate = date;
-          }
-          periodEndDate = date;
-        }
-        if (color === Settings.graphFreeColor) {
-          if (periodStartDate) {
-            const period = new Period({ start: periodStartDate, end: periodEndDate });
-            periods.push(period);
-            periodStartDate = null;
-          }
-        }
-      }
-      if (periodStartDate) {
-        const period = new Period({ start: periodStartDate, end: periodEndDate });
-        periods.push(period);
-        periodStartDate = null;
-      }
-      if (periods.length) {
-        Logger.log(`App._processGraphSheet. Found periods on sheet "${sheetName}" for user ${fio}: ${periods.length}`);
-        const userData = new UserData({ fio, periods });
-        usersData.push(userData);
-      }
-    }
-    if (usersData.length) {
-      Logger.log(`App._processGraphSheet. Found users on sheet "${sheetName}" for year ${year}: ${usersData.length}`);
-      this._appData.graphsData.merge({ year, usersData })
+    const grSheet = new GraphSheet({ sheet, workbook: this._workbook });
+    const grData = grSheet.getGraphData();
+    if (grData.usersData.length) {
+      Logger.log(`App._processGraphSheet. Found users on sheet "${sheet.getName()}" for year ${grData.year}: ${grData.usersData.length}`);
+      this._appData.graphsData.merge(grData);
     }
   }
 
   _updateGraphsData() {
-    
+    const newGraphsData = this._appData.usersData.getGraphsData();
+    const changes = this._appData.graphsData.getChanges(newGraphsData);
+    if (!changes.length) {
+      Logger.log('No differences between table data and graph data');
+      return;
+    };
+    this._applyGraphChanges(changes);
+    this._appData.graphsData = newGraphsData;
   }
+
+  /**
+   * 
+   * @param {GraphChanges[]} changes 
+   */
+  _applyGraphChanges(changes) {
+    for (const yearChanges of changes) {
+      const grSheet = new GraphSheet({
+        year: yearChanges.year,
+        workbook: this._workbook
+      });
+      if (yearChanges.fullDelete) {
+        grSheet.deleteSheet();
+      } else {
+        grSheet.applyChanges(yearChanges);
+      }
+    }
+  }
+
 
 }
