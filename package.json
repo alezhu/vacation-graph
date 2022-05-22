@@ -1,0 +1,20 @@
+{
+    "name": "vacation-graph",
+    "version": "1.0.0",
+    "description": "Create google sheets with vacation calendar in google spreadsheed ",
+    "main": "_init.js",
+    "directories": {
+        "test": "tests"
+    },
+    "scripts": {
+        "test": "jest"
+    },
+    "devDependencies": {
+        "@types/google-apps-script": "^1.0.45",
+        "@types/google-apps-script-oauth2": "^38.0.0",
+        "@types/jest": "^27.4.1",
+        "jest": "^27.5.1"
+    },
+    "author": "alexandr.zhuravlev@gmail.com",
+    "license": "ISC"
+}
